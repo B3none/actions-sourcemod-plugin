@@ -2,61 +2,25 @@ name: SourceMod Plugin Workflow
 
 on:
   push:
-    branches:
-    - master
+    branches: master
 
 jobs:
-  dependencies:
-    name: Install dependencies
-    runs-on: ubuntu-latest
-    steps:
-    - name: Install dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install gcc-multilib
-        sudo apt-get install lynx
-        sudo apt-get install lib32stdc++6
-        
-  sourcemod:
-    name: Install SourceMod
-    needs: dependencies
-    runs-on: ubuntu-latest
-    steps:
-    - name: Download SourceMod
-      run: |
-        mkdir sm
-        cd sm/
-        wget -O sourcemod.tar.gz http://sourcemod.net/latest.php?os=linux&version=1.9
-        
-    - name: Extract, Setup and Clean SourceMod
-      run: |
-        ls
-        tar -xzvf sourcemod.tar.gz
-        chmod +x sm/addons/sourcemod/scripting/spcomp
-        chmod +x sm/addons/sourcemod/scripting/compile.sh
-        cd ../
-        find sm/addons/sourcemod/scripting/ -name "*.sp" -type f -delete
-        
-    - name: Copy plugin files
-      run: |
-        cp -rv scripting/. sm/addons/sourcemod/scripting/
-        cp -rv include/. sm/addons/sourcemod/scripting/include
+  build:
 
-  includes:
-    name: Install extra includes
-    needs: sourcemod
     runs-on: ubuntu-latest
-    steps:
-    - name: Get x.inc
-      run: echo There were no extra includes to download!
     
-  compile:
-    name: Compile plugin
-    needs: [dependencies, sourcemod, includes]
-    runs-on: ubuntu-latest
     steps:
-    - name: Move into the SourceMod directory
-      run: sm/addons/sourcemod/scripting/
-      
-    - name: Compile the plugin
-      run: ./compile.sh
+    - uses: actions/checkout@v1
+    - name: Download sourcemod
+      run: |
+        wget "http://www.sourcemod.net/latest.php?version=1.10&os=linux" -O sourcemod.tar.gz
+        tar -xzf sourcemod.tar.gz
+    - name: Give spcomp the required permissions
+      run: chmod +x addons/sourcemod/scripting/spcomp
+    - name: Compiling of all TTT related plugins
+      run: |
+        for file in addons/sourcemod/scripting/*.sp
+        do
+          echo -e "\nCompiling $file..." 
+          addons/sourcemod/scripting/spcomp -E -w234 -O2 -v2 $file
+        done
